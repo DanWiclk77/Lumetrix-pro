@@ -1,0 +1,115 @@
+name: Build LUMETRIX PRO – VST3
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+
+  build-windows:
+    name: Windows VST3
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Cache JUCE
+        uses: actions/cache@v4.2.3
+        with:
+          path: build/_deps
+          key: juce-windows-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: juce-windows-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=Release `
+            -G "Visual Studio 17 2022" `
+            -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: LumetrixPro-VST3-Windows
+          path: build/**/*.vst3
+          if-no-files-found: warn
+
+  build-mac:
+    name: macOS VST3
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Cache JUCE
+        uses: actions/cache@v4.2.3
+        with:
+          path: build/_deps
+          key: juce-mac-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: juce-mac-
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: LumetrixPro-VST3-Mac
+          path: build/**/*.vst3
+          if-no-files-found: warn
+
+  build-linux:
+    name: Linux VST3
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libx11-dev \
+            libxinerama-dev \
+            libxext-dev \
+            libfreetype6-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            libjack-jackd2-dev \
+            libcurl4-openssl-dev \
+            pkg-config
+
+      - name: Cache JUCE
+        uses: actions/cache@v4.2.3
+        with:
+          path: build/_deps
+          key: juce-linux-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: juce-linux-
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: LumetrixPro-VST3-Linux
+          path: build/**/*.vst3
+          if-no-files-found: warn
